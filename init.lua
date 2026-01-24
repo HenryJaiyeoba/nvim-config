@@ -27,6 +27,15 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+--inline errors
+vim.diagnostic.config {
+  virtual_text = true,
+  signs = true,
+  underline = false,
+  update_in_insert = false,
+  severity_sort = true,
+}
+
 -- [[ Configure and install plugins ]]
 require('lazy').setup({
   -- This line tells Lazy to import every .lua file in lua/plugins/

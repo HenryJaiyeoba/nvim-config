@@ -7,19 +7,32 @@ vim.keymap.set('i', 'jk', '<Esc>')
 vim.keymap.set('v', 'jk', '<Esc>')
 
 -- Diagnostic navigation
-vim.keymap.set('n', '<leader>x', vim.diagnostic.open_float)
-vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
+vim.keymap.set('n', '<leader>l', vim.diagnostic.setloclist, { desc = 'Open diagnostic Loclist' })
+vim.keymap.set('n', '<leader>e', function()
+  vim.diagnostic.open_float(nil, { focus = false })
+end, { desc = 'Show line diagnostics' })
+vim.keymap.set('n', '<leader>q', vim.diagnostic.setqflist, { desc = 'Diagnostics (workspace)' })
+-- Quickfix navigation
+vim.keymap.set('n', ']q', ':cnext<CR>', { desc = 'Next quickfix item' })
+vim.keymap.set('n', '[q', ':cprev<CR>', { desc = 'Previous quickfix item' })
+vim.keymap.set('n', '<leader>co', ':copen<CR>', { desc = 'Open quickfix' })
+vim.keymap.set('n', '<leader>cc', ':cclose<CR>', { desc = 'Close quickfix' })
+
+--Location list navigation
+vim.keymap.set('n', ']l', ':lnext<CR>', { desc = 'Next loclist item' })
+vim.keymap.set('n', '[l', ':lprev<CR>', { desc = 'Previous loclist item' })
+vim.keymap.set('n', '<leader>lo', ':lopen<CR>', { desc = 'Open loclist' })
+vim.keymap.set('n', '<leader>lc', ':lclose<CR>', { desc = 'Close loclist' })
 
 -- Window spliting
 vim.keymap.set('n', '<leader>wv', '<cmd>vsplit<CR>', { desc = 'Split window [V]ertically' })
-vim.keymap.set('n', '<leader>ws', '<cmd>split<CR>', { desc = 'Split window [H]orizontally' })
+vim.keymap.set('n', '<leader>wh', '<cmd>split<CR>', { desc = 'Split window [H]orizontally' })
 vim.keymap.set('n', '<leader>wq', '<cmd>close<CR>', { desc = '[D]elete current window' })
 -- Window Navigation
-vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
-vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
-vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
-vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
-
+vim.keymap.set('n', '<C-h>', '<C-w>h', { silent = true })
+vim.keymap.set('n', '<C-j>', '<C-w>j', { silent = true })
+vim.keymap.set('n', '<C-k>', '<C-w>k', { silent = true })
+vim.keymap.set('n', '<C-l>', '<C-w>l', { silent = true })
 -- Quickfix list
 vim.keymap.set('n', '<leader>ae', function()
   vim.fn.setqflist({ { text = vim.fn.getline '.' } }, 'a')
