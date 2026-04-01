@@ -21,8 +21,11 @@ return {
       local sources = {
         -- Python
         require 'none-ls.diagnostics.ruff',
-        require("none-ls.formatting.ruff").with {extra_args = {"--extend-select", "I"}},
+        require('none-ls.formatting.ruff').with { extra_args = { '--extend-select', 'I' } },
         require 'none-ls.formatting.ruff_format',
+
+        -- cpp
+        null_ls.builtins.formatting.clang_format,
 
         --lua
         null_ls.builtins.formatting.stylua,

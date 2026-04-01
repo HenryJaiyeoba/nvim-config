@@ -47,16 +47,19 @@ return {
       vim.api.nvim_create_autocmd('LspAttach', {
         callback = function(event)
           local opts = { buffer = event.buf }
+          local function with_desc(desc)
+            return vim.tbl_extend('force', opts, { desc = desc })
+          end
 
           -- Keybindings
-          vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
-          vim.keymap.set('n', '<leader>gd', vim.lsp.buf.definition, opts)
-          vim.keymap.set('n', '<leader>gr', vim.lsp.buf.references, opts)
-          vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts)
+          vim.keymap.set('n', 'K', vim.lsp.buf.hover, with_desc 'Hover documentation')
+          vim.keymap.set('n', '<leader>gd', vim.lsp.buf.definition, with_desc 'Go to definition')
+          vim.keymap.set('n', '<leader>gr', vim.lsp.buf.references, with_desc 'Go to references')
+          vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, with_desc 'Code action')
           vim.keymap.set('n', '<leader>gf', function()
             vim.lsp.buf.format { async = true }
-          end, opts)
-          vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, opts)
+          end, with_desc 'Format buffer')
+          vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, with_desc 'Rename symbol')
         end,
       })
 

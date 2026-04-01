@@ -61,3 +61,11 @@ require('lazy').setup({
     },
   },
 })
+-- [[configure GUI Neovide]
+if vim.g.neovide then
+  vim.o.guifont = 'Iosevka Nerd Font Propo:h21' -- Adjust :h14 for size
+  vim.g.neovide_menu = false
+  vim.opt.linespace = 0
+  vim.opt.guioptions:remove 'm'
+  vim.g.neovide_hide_title_bar = true
+end
