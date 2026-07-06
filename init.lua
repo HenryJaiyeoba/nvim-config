@@ -15,6 +15,17 @@ vim.g.have_nerd_font = true
 require 'config.options'
 require 'config.keymaps'
 require 'config.autocmds'
+require 'config.terminal'
+
+-- Neovide keymap for zooming in and out
+if vim.g.neovide then
+  vim.keymap.set('n', '<C-=>', function()
+    vim.g.neovide_scale_factor = vim.g.neovide_scale_factor + 0.1
+  end)
+  vim.keymap.set('n', '<C-->', function()
+    vim.g.neovide_scale_factor = vim.g.neovide_scale_factor - 0.1
+  end)
+end
 
 -- [[ Install `lazy.nvim` plugin manager ]]
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
@@ -61,11 +72,9 @@ require('lazy').setup({
     },
   },
 })
--- [[configure GUI Neovide]
 if vim.g.neovide then
-  vim.o.guifont = 'Iosevka Nerd Font Propo:h21' -- Adjust :h14 for size
-  vim.g.neovide_menu = false
-  vim.opt.linespace = 0
-  vim.opt.guioptions:remove 'm'
-  vim.g.neovide_hide_title_bar = true
+  vim.g.neovide_normal_opacity = 1.0
+  vim.g.neovide_layer_grouping = false
+  vim.opt.pumblend = 0
+  vim.opt.winblend = 0
 end

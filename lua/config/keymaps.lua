@@ -6,6 +6,9 @@ vim.keymap.set('n', '<leader>n', '<cmd>nohlsearch<CR>')
 vim.keymap.set('i', 'jk', '<Esc>')
 vim.keymap.set('v', 'jk', '<Esc>')
 
+-- Paste over a selection without replacing the last yank
+vim.keymap.set('x', 'p', '"_dP')
+
 local function notify(message, level)
   vim.notify(message, level or vim.log.levels.INFO, { title = 'Keymaps' })
 end
@@ -126,6 +129,123 @@ local function goto_diag(next, severity)
   jump { severity = severity }
 end
 
+local function clamp(value, min_value, max_value)
+  return math.min(math.max(value, min_value), max_value)
+end
+
+local function get_visual_range()
+  local start_line = vim.fn.getpos('v')[2]
+  local end_line = vim.api.nvim_win_get_cursor(0)[1]
+  if start_line > end_line then
+    start_line, end_line = end_line, start_line
+  end
+  return start_line, end_line
+end
+
+local function move_range(start_line, end_line, target_start)
+  local buf = 0
+  local total_lines = vim.api.nvim_buf_line_count(buf)
+  local count = end_line - start_line + 1
+  local max_start = math.max(1, total_lines - count + 1)
+  local clamped_target = clamp(target_start, 1, max_start)
+
+  if start_line == clamped_target and end_line == clamped_target + count - 1 then
+    return start_line, end_line
+  end
+
+  local lines = vim.api.nvim_buf_get_lines(buf, start_line - 1, end_line, false)
+  vim.api.nvim_buf_set_lines(buf, start_line - 1, end_line, false, {})
+  vim.api.nvim_buf_set_lines(buf, clamped_target - 1, clamped_target - 1, false, lines)
+
+  return clamped_target, clamped_target + count - 1
+end
+
+local function restore_visual_selection(start_line, end_line, reindent)
+  vim.fn.setpos("'<", { 0, start_line, 1, 0 })
+  vim.fn.setpos("'>", { 0, end_line, 1, 0 })
+  vim.api.nvim_win_set_cursor(0, { start_line, 0 })
+  if reindent then
+    vim.cmd 'normal! gv=gv'
+  else
+    vim.cmd 'normal! gv'
+  end
+end
+
+local function move_current_line(delta)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local line = cursor[1]
+  local total_lines = vim.api.nvim_buf_line_count(0)
+  local target = clamp(line + delta, 1, total_lines)
+  local new_start = move_range(line, line, target)
+  vim.api.nvim_win_set_cursor(0, { new_start, cursor[2] })
+end
+
+local function move_visual_selection(delta)
+  local start_line, end_line = get_visual_range()
+  local total_lines = vim.api.nvim_buf_line_count(0)
+  local count = end_line - start_line + 1
+  local max_start = math.max(1, total_lines - count + 1)
+  local target = clamp(start_line + delta, 1, max_start)
+  local new_start, new_end = move_range(start_line, end_line, target)
+  restore_visual_selection(new_start, new_end, true)
+end
+
+local function prompt_move_target(default_line, max_start)
+  local input = vim.trim(vim.fn.input(('Move to line (1-%d or 20j/20k): '):format(max_start), tostring(default_line)))
+  if input == '' then
+    return nil
+  end
+
+  local relative_count, relative_direction = input:match('^(%d+)([jk])$')
+  if relative_count and relative_direction then
+    local delta = tonumber(relative_count)
+    if relative_direction == 'k' then
+      delta = -delta
+    end
+    return clamp(default_line + delta, 1, max_start)
+  end
+
+  local signed_delta = input:match('^([+-]%d+)$')
+  if signed_delta then
+    return clamp(default_line + tonumber(signed_delta), 1, max_start)
+  end
+
+  local target = tonumber(input)
+  if target then
+    return clamp(math.floor(target), 1, max_start)
+  end
+
+  notify('Enter a line number, +N/-N, or Nj/Nk', vim.log.levels.WARN)
+  return nil
+end
+
+local function move_current_line_to_line()
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local line = cursor[1]
+  local total_lines = vim.api.nvim_buf_line_count(0)
+  local target = prompt_move_target(line, total_lines)
+  if not target then
+    return
+  end
+
+  local new_start = move_range(line, line, target)
+  vim.api.nvim_win_set_cursor(0, { new_start, cursor[2] })
+end
+
+local function move_visual_selection_to_line()
+  local start_line, end_line = get_visual_range()
+  local total_lines = vim.api.nvim_buf_line_count(0)
+  local count = end_line - start_line + 1
+  local max_start = math.max(1, total_lines - count + 1)
+  local target = prompt_move_target(start_line, max_start)
+  if not target then
+    return
+  end
+
+  local new_start, new_end = move_range(start_line, end_line, target)
+  restore_visual_selection(new_start, new_end, false)
+end
+
 -- Diagnostics, quickfix, and loclist navigation
 vim.keymap.set('n', ']q', '<cmd>cnext<CR>', { desc = 'Quickfix next' })
 vim.keymap.set('n', '[q', '<cmd>cprev<CR>', { desc = 'Quickfix previous' })
@@ -185,12 +305,34 @@ vim.keymap.set('n', '<leader>lq', quickfix_to_loclist, { desc = 'Quickfix to loc
 vim.keymap.set('n', '<leader>dd', function()
   vim.diagnostic.open_float(nil, { focus = false })
 end, { desc = 'Line diagnostics' })
-vim.keymap.set('n', '<leader>dl', function()
-  diagnostics_to_loclist 'buffer'
-end, { desc = 'Buffer diagnostics list' })
-vim.keymap.set('n', '<leader>dq', function()
-  diagnostics_to_quickfix()
-end, { desc = 'Workspace diagnostics list' })
+
+-- Move lines and selections
+vim.keymap.set('n', '<A-j>', function()
+  move_current_line(1)
+end, { desc = 'Move line down' })
+vim.keymap.set('n', '<A-k>', function()
+  move_current_line(-1)
+end, { desc = 'Move line up' })
+vim.keymap.set('x', '<A-j>', function()
+  move_visual_selection(1)
+end, { desc = 'Move selection down' })
+vim.keymap.set('x', '<A-k>', function()
+  move_visual_selection(-1)
+end, { desc = 'Move selection up' })
+vim.keymap.set('n', '<leader>mj', function()
+  move_current_line(1)
+end, { desc = 'Move line down' })
+vim.keymap.set('n', '<leader>mk', function()
+  move_current_line(-1)
+end, { desc = 'Move line up' })
+vim.keymap.set('x', '<leader>mj', function()
+  move_visual_selection(1)
+end, { desc = 'Move selection down' })
+vim.keymap.set('x', '<leader>mk', function()
+  move_visual_selection(-1)
+end, { desc = 'Move selection up' })
+vim.keymap.set('n', '<leader>ml', move_current_line_to_line, { desc = 'Move line to line' })
+vim.keymap.set('x', '<leader>ml', move_visual_selection_to_line, { desc = 'Move selection to line' })
 
 -- Window spliting
 vim.keymap.set('n', '<leader>wv', '<cmd>vsplit<CR>', { desc = 'Split window [V]ertically' })

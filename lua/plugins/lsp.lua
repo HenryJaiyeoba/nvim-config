@@ -38,9 +38,6 @@ return {
   {
     'neovim/nvim-lspconfig',
     lazy = false,
-    dependencies = {
-      'hrsh7th/cmp-nvim-lsp', -- Required for autocompletion capabilities
-    },
     config = function()
       -- [[ 1. Keymaps: Only attach when an LSP is active in a buffer ]]
       -- Optional: Diagnostic keymaps
@@ -53,8 +50,6 @@ return {
 
           -- Keybindings
           vim.keymap.set('n', 'K', vim.lsp.buf.hover, with_desc 'Hover documentation')
-          vim.keymap.set('n', '<leader>gd', vim.lsp.buf.definition, with_desc 'Go to definition')
-          vim.keymap.set('n', '<leader>gr', vim.lsp.buf.references, with_desc 'Go to references')
           vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, with_desc 'Code action')
           vim.keymap.set('n', '<leader>gf', function()
             vim.lsp.buf.format { async = true }
@@ -63,24 +58,61 @@ return {
         end,
       })
 
-      -- [[ 2. Capabilities: Inform servers of features supported by cmp-nvim-lsp ]]
-      local capabilities = require('cmp_nvim_lsp').default_capabilities()
+      -- [[ 2. Capabilities: Inform servers of features supported by blink.cmp ]]
+      local capabilities = require('blink.cmp').get_lsp_capabilities()
+
+      local function find_python(root_dir)
+        local candidates = {
+          vim.fs.joinpath(root_dir, '.venv', 'bin', 'python'),
+          vim.fs.joinpath(root_dir, 'venv', 'bin', 'python'),
+          vim.fs.joinpath(root_dir, '.venv', 'Scripts', 'python.exe'),
+          vim.fs.joinpath(root_dir, 'venv', 'Scripts', 'python.exe'),
+        }
+
+        for _, python in ipairs(candidates) do
+          if vim.fn.executable(python) == 1 then
+            return python
+          end
+        end
+      end
 
       -- [[ 3. Server Registration (Native 0.11 API) ]]
       local servers = {
-        'tailwindcss',
-        'lua_ls',
-        'pyright',
-        'ts_ls',
+        tailwindcss = {},
+        lua_ls = {},
+        pyright = {
+          before_init = function(_, config)
+            local root_dir = config.root_dir or vim.fn.getcwd()
+            local python = find_python(root_dir)
+            if not python then
+              return
+            end
+
+            config.settings = config.settings or {}
+            config.settings.python = vim.tbl_deep_extend('force', config.settings.python or {}, {
+              pythonPath = python,
+              venvPath = root_dir,
+              venv = python:find('/%.venv/', 1, false) and '.venv' or 'venv',
+            })
+          end,
+          settings = {
+            python = {
+              analysis = {
+                autoSearchPaths = true,
+                useLibraryCodeForTypes = true,
+                diagnosticMode = 'workspace',
+              },
+            },
+          },
+        },
+        ts_ls = {},
       }
 
-      for _, server_name in ipairs(servers) do
+      for server_name, server_config in pairs(servers) do
         -- Register the server configuration
-        vim.lsp.config(server_name, {
+        vim.lsp.config(server_name, vim.tbl_deep_extend('force', {
           capabilities = capabilities,
-          -- You can add server-specific settings here if needed
-          -- settings = { ... }
-        })
+        }, server_config))
 
         -- Enable the server globally
         vim.lsp.enable(server_name)
