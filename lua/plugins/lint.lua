@@ -6,7 +6,7 @@ return {
       local lint = require 'lint'
 
       lint.linters_by_ft = {
-        markdown = { 'markdownlint-cli2' }, -- use this instead of 'markdownlint'
+        markdown = { 'markdownlint-cli2' },
       }
 
       -- Create autocommand which carries out the actual linting
@@ -15,7 +15,7 @@ return {
         group = lint_augroup,
         callback = function()
           -- Only run the linter in buffers that you can modify
-          if vim.opt_local.modifiable:get() then
+          if vim.opt_local.modifiable:get() and vim.fn.executable 'markdownlint-cli2' == 1 then
             lint.try_lint()
           end
         end,
