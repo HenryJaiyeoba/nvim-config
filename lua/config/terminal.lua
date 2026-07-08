@@ -40,6 +40,7 @@ local function toggle_terminal()
 
   if vim.bo[state.buf].buftype ~= 'terminal' then
     vim.cmd.terminal()
+    vim.bo[state.buf].buflisted = false
   end
 
   vim.cmd.startinsert()
