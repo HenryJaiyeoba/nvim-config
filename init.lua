@@ -75,6 +75,7 @@ require('lazy').setup({
 if vim.g.neovide then
   vim.g.neovide_normal_opacity = 1.0
   vim.g.neovide_layer_grouping = false
+  vim.opt.linespace = 2
   vim.opt.pumblend = 0
   vim.opt.winblend = 0
 end
