@@ -8,7 +8,22 @@ return {
   config = function()
     local configs = require 'nvim-treesitter.configs'
     configs.setup {
-      ensure_installed = { 'c', 'cpp', 'html', 'javascript', 'lua', 'python', 'query', 'tsx', 'typescript', 'vim', 'vimdoc' },
+      ensure_installed = {
+        'c',
+        'cpp',
+        'html',
+        'javascript',
+        'lua',
+        'markdown',
+        'markdown_inline',
+        'python',
+        'query',
+        'tsx',
+        'typescript',
+        'vim',
+        'vimdoc',
+        'yaml',
+      },
       highlight = { enable = true },
       indent = { enable = true },
     }
