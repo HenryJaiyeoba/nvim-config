@@ -40,7 +40,13 @@ vim.opt.rtp:prepend(lazypath)
 
 --inline errors
 vim.diagnostic.config {
-  virtual_text = true,
+  virtual_text = {
+    spacing = 2,
+    prefix = '●',
+  },
+  virtual_lines = {
+    current_line = true,
+  },
   signs = true,
   underline = false,
   update_in_insert = false,

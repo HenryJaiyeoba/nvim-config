@@ -5,7 +5,9 @@ return {
     'folke/which-key.nvim',
     event = 'VimEnter',
     opts = {
-      -- ... (Copy your large WhichKey opts table here) ...
+      spec = {
+        { '<leader>d', group = 'diagnostics' },
+      },
     },
   },
 
